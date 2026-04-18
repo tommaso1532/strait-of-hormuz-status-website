@@ -47,4 +47,23 @@ describe('parseRSSItems', () => {
   it('returns empty array for empty feed', () => {
     expect(parseRSSItems('<rss><channel></channel></rss>')).toEqual([]);
   });
+
+  it('sets pubDate to 0 when pubDate tag is absent', () => {
+    const xml = `<rss><channel><item>
+    <title>No date item</title>
+    <description>desc</description>
+  </item></channel></rss>`;
+    const [item] = parseRSSItems(xml);
+    expect(item.pubDate).toBe(0);
+  });
+
+  it('sets pubDate to 0 for malformed date string', () => {
+    const xml = `<rss><channel><item>
+    <title>Bad date</title>
+    <description></description>
+    <pubDate>not-a-date</pubDate>
+  </item></channel></rss>`;
+    const [item] = parseRSSItems(xml);
+    expect(item.pubDate).toBe(0);
+  });
 });

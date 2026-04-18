@@ -13,7 +13,11 @@ describe('extractVesselCount', () => {
     expect(extractVesselCount('{"vessel_count":3,"area":"hormuz"}')).toBe(3);
   });
 
+  it('extracts count from "4 ships" pattern', () => {
+    expect(extractVesselCount('<p>4 ships tracked</p>')).toBe(4);
+  });
+
   it('throws when no vessel count found (JS-rendered page)', () => {
-    expect(() => extractVesselCount('<html><body><script src="app.js"></script></body></html>')).toThrow('No vessel data');
+    expect(() => extractVesselCount('<html><body><script src="app.js"></script></body></html>')).toThrow('No vessel data in HTML (likely JS-rendered)');
   });
 });

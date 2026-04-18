@@ -63,13 +63,19 @@
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
 
-        statusEl.textContent = data.status;
-        statusEl.className = data.status.toLowerCase();
+        const VALID_STATUSES = new Set(['open', 'closed', 'unknown']);
+        const raw = typeof data.status === 'string' ? data.status.toUpperCase() : 'UNKNOWN';
+        const key = raw.toLowerCase();
+        statusEl.textContent = VALID_STATUSES.has(key) ? raw : 'UNKNOWN';
+        statusEl.className   = VALID_STATUSES.has(key) ? key : 'unknown';
 
-        const time = new Date(data.checkedAt).toLocaleString(undefined, {
+        const rawDate = new Date(data.checkedAt);
+        const time = isNaN(rawDate.getTime()) ? 'unknown time' : rawDate.toLocaleString(undefined, {
           dateStyle: 'medium', timeStyle: 'short'
         });
-        const sources = data.sources.length ? data.sources.join(' + ') : 'no data';
+        const sources = Array.isArray(data.sources) && data.sources.length
+          ? data.sources.join(' + ')
+          : 'no data';
         metaEl.textContent = `confidence: ${data.confidence} · sources: ${sources} · ${time}`;
       } catch {
         statusEl.textContent = 'UNKNOWN';

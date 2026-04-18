@@ -23,6 +23,8 @@ function mockFetch(rssBody, aisBody) {
   });
 }
 
+const { createHandler } = require('../api/status');
+
 describe('handler', () => {
   let originalFetch;
 
@@ -40,9 +42,12 @@ describe('handler', () => {
     return res;
   }
 
+  // Note: global.fetch must be assigned before the handler is *invoked*, not before require().
+  // The module cache means require() returns the same module object every time.
+  // Mocking global.fetch before handler() call is what controls which fetch is used.
+
   it('returns CLOSED high confidence on strong closure news', async () => {
     global.fetch = mockFetch(makeRSSXml('Hormuz blocked by Iran forces', 2), '<p>0 vessels</p>');
-    const { createHandler } = require('../api/status');
     const handler = createHandler();
     const res = makeResMock();
     await handler({}, res);
@@ -53,7 +58,6 @@ describe('handler', () => {
 
   it('returns OPEN when no closure keywords in news', async () => {
     global.fetch = mockFetch(makeRSSXml('Oil tanker transits Hormuz safely', 1), '<p>12 vessels in area</p>');
-    const { createHandler } = require('../api/status');
     const handler = createHandler();
     const res = makeResMock();
     await handler({}, res);
@@ -63,21 +67,29 @@ describe('handler', () => {
 
   it('returns OPEN low confidence when both fetches fail', async () => {
     global.fetch = jest.fn(() => Promise.reject(new Error('Network error')));
-    const { createHandler } = require('../api/status');
     const handler = createHandler();
     const res = makeResMock();
     await handler({}, res);
     expect(res._body.status).toBe('OPEN');
     expect(res._body.confidence).toBe('low');
     expect(res._body.sources).toEqual([]);
+    expect(res._statusCode).toBe(200);
   });
 
   it('includes checkedAt ISO timestamp', async () => {
     global.fetch = jest.fn(() => Promise.reject(new Error('fail')));
-    const { createHandler } = require('../api/status');
     const handler = createHandler();
     const res = makeResMock();
     await handler({}, res);
     expect(res._body.checkedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  it('degrades gracefully when AIS HTML has no vessel pattern', async () => {
+    global.fetch = mockFetch(makeRSSXml('Oil tanker transits Hormuz safely', 1), '<html><body><script src="app.js"></script></body></html>');
+    const handler = createHandler();
+    const res = makeResMock();
+    await handler({}, res);
+    expect(res._body.sources).not.toContain('ais');
+    expect(res._body.status).toBe('OPEN');
   });
 });

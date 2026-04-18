@@ -36,7 +36,7 @@ function createHandler() {
     const { status, confidence, sources } = computeStatus(news, ais);
 
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.json({
+    res.status(200).json({
       status,
       confidence,
       sources,

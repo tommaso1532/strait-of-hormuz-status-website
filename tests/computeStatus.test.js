@@ -39,4 +39,37 @@ describe('computeStatus', () => {
     expect(computeStatus({ closureScore: 0, openScore: 1 }, null).sources).not.toContain('ais');
     expect(computeStatus({ closureScore: 0, openScore: 1 }, { vesselCount: 5 }).sources).toContain('ais');
   });
+
+  it('returns OPEN high confidence with AIS-only vessel traffic', () => {
+    const result = computeStatus(null, { vesselCount: 10 });
+    expect(result.status).toBe('OPEN');
+    expect(result.confidence).toBe('high');
+    expect(result.sources).toContain('ais');
+  });
+
+  it('returns CLOSED medium confidence with AIS-only zero vessels', () => {
+    const result = computeStatus(null, { vesselCount: 0 });
+    expect(result.status).toBe('CLOSED');
+    expect(result.confidence).toBe('medium');
+    expect(result.sources).toContain('ais');
+  });
+
+  it('vesselCount 1-4 is neutral — AIS in sources but no signal change', () => {
+    const baseResult = computeStatus({ closureScore: 0, openScore: 0 }, null);
+    const withAIS = computeStatus({ closureScore: 0, openScore: 0 }, { vesselCount: 3 });
+    expect(withAIS.status).toBe(baseResult.status);
+    expect(withAIS.confidence).toBe(baseResult.confidence);
+    expect(withAIS.sources).toContain('ais');
+  });
+
+  it('vesselCount === 5 is neutral — same outcome as vesselCount === 3', () => {
+    const withFive = computeStatus({ closureScore: 0, openScore: 1 }, { vesselCount: 5 });
+    expect(withFive.confidence).toBe('high'); // openSignals > 0 from news, not from AIS
+  });
+
+  it('strong news closure + AIS open still returns CLOSED high confidence', () => {
+    const result = computeStatus({ closureScore: 3, openScore: 0 }, { vesselCount: 20 });
+    expect(result.status).toBe('CLOSED');
+    expect(result.confidence).toBe('high');
+  });
 });

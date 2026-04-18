@@ -39,4 +39,9 @@ describe('scoreNewsItems', () => {
     const { closureScore } = scoreNewsItems(items);
     expect(closureScore).toBe(2); // one item, weight 2, not 6
   });
+
+  it('ignores items with future pubDate', () => {
+    const items = [makeItem('Hormuz blocked by Iran', -2)]; // -2 hours = 2h in the future
+    expect(scoreNewsItems(items)).toEqual({ closureScore: 0, openScore: 0 });
+  });
 });
